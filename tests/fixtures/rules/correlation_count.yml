@@ -1,0 +1,13 @@
+title: Failed Logon Brute Force
+id: 00000000-0000-0000-0000-000000000002
+status: test
+level: high
+correlation:
+  type: event_count
+  rules:
+    - 00000000-0000-0000-0000-000000000001
+  group-by:
+    - User
+  timespan: 5m
+  condition:
+    gte: 5

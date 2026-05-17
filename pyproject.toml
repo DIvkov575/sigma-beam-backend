@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sigma-beam"
+version = "0.1.0"
+description = "Apache Beam runtime for Sigma detection + correlation rules"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Beaver SIEM" }]
+dependencies = [
+    "apache-beam[gcp]>=2.55,<3",
+    "pysigma>=0.11,<0.12",
+    "pyyaml>=6",
+    "google-cloud-storage>=2.10",
+]
+
+[project.optional-dependencies]
+pipelines = [
+    "pysigma-pipeline-sysmon>=1.0",
+    "pysigma-pipeline-windows>=1.0",
+]
+test = [
+    "pytest>=8",
+    "hypothesis>=6",
+]
+
+[project.scripts]
+sigma-beam-corpus = "sigma_beam.cli_corpus:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+filterwarnings = [
+    "ignore::pytest.PytestCollectionWarning",
+]

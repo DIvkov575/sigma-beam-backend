@@ -1,0 +1,16 @@
+title: Encoded PowerShell Invocation
+id: 22222222-2222-2222-2222-222222222222
+status: test
+logsource: {product: windows, category: process_creation}
+detection:
+  sel_image:
+    Image|endswith:
+      - '\powershell.exe'
+      - '\pwsh.exe'
+  sel_cmd:
+    CommandLine|contains:
+      - ' -enc '
+      - ' -EncodedCommand '
+      - ' -e '
+  condition: sel_image and sel_cmd
+level: high

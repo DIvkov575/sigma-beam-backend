@@ -1,0 +1,10 @@
+title: External SSH from Private Range
+id: 44444444-4444-4444-4444-444444444444
+status: test
+logsource: {category: firewall}
+detection:
+  sel:
+    dst_port: 22
+    src_ip|cidr: 10.0.0.0/8
+  condition: sel
+level: low

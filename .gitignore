@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual envs
+.venv/
+.venv-*/
+venv/
+env/
+
+# Packaging / build
+build/
+dist/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+
+# pytest / coverage / type checkers
+.pytest_cache/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Apache Beam / Dataflow local artifacts
+*.pickle
+*.whl
+
+# Local corpus checkouts pulled by tests (SIGMA_HQ_PATH typically points
+# outside the repo; only ignore in-tree copies if any).
+/sigma-hq/
+/sigmahq-rules/

@@ -1,0 +1,10 @@
+title: Multiple Suspicious Indicators
+id: 77777777-7777-7777-7777-777777777777
+status: test
+logsource: {product: windows, category: process_creation}
+detection:
+  sel_a: {Image|endswith: '\cmd.exe'}
+  sel_b: {CommandLine|contains: ' /c '}
+  sel_c: {ParentImage|endswith: '\winword.exe'}
+  condition: all of sel_*
+level: medium

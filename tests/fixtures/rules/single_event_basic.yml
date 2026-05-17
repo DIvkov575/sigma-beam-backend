@@ -1,0 +1,11 @@
+title: Failed Windows Logon
+id: 00000000-0000-0000-0000-000000000001
+status: test
+level: medium
+logsource:
+  product: windows
+  service: security
+detection:
+  sel:
+    EventID: 4625
+  condition: sel

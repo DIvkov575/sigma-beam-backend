@@ -1,0 +1,10 @@
+title: Mimikatz Mention Anywhere
+id: 66666666-6666-6666-6666-666666666666
+status: test
+logsource: {product: windows}
+detection:
+  kw:
+    - mimikatz
+    - sekurlsa
+  condition: kw
+level: high

@@ -1,0 +1,4 @@
+apache-beam[gcp]>=2.55,<3
+pysigma>=0.11,<0.12
+pyyaml>=6
+google-cloud-storage>=2.10
