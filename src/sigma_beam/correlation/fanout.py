@@ -6,7 +6,11 @@ to event dicts and fed through the nested rules' transforms."""
 
 from __future__ import annotations
 
+import logging
+
 import apache_beam as beam
+
+log = logging.getLogger(__name__)
 
 from ..ruleset import CompiledCorrelation, CompiledRule, Ruleset
 from .event_count import EventCountCorrelation
@@ -58,8 +62,12 @@ class CorrelationFanout(beam.PTransform):
                          | "AsAlert" >> beam.Map(lambda _: None)
 
         if not branches:
-            return pcoll | "EmptyFanout2" >> beam.Filter(lambda _: False) \
-                         | "AsAlert2" >> beam.Map(lambda _: None)
+            log.warning(
+                "nested correlations configured but no first-level correlations "
+                "resolved their rule refs — nested stage has no input"
+            )
+            return pcoll | "EmptyNested" >> beam.Filter(lambda _: False) \
+                         | "AsNested" >> beam.Map(lambda _: None)
 
         first_level_alerts = branches | "FlattenFirstLevel" >> beam.Flatten()
 

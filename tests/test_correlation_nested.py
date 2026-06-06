@@ -30,6 +30,32 @@ def _always_true(e: dict) -> bool:
     return e.get("event") == "login" and e.get("status") == "failed"
 
 
+def test_nested_fanout_warns_when_no_first_level_input(caplog):
+    """When nested correlations exist but no first-level refs resolve,
+    the pipeline returns empty and logs a warning (not a silent drop)."""
+    # nested_corr references 'corr-brute-force' but that correlation is missing
+    # from the first-level list, so `branches` will be empty.
+    nested_corr = CompiledCorrelation(
+        id="corr-distributed", title="distributed brute", severity="critical",
+        kind="event_count", referenced_rule_ids=("corr-brute-force",),
+        group_by=("correlation_key",), window_seconds=900, threshold=2,
+        is_nested=True,
+    )
+    rs = Ruleset(
+        single_event=[],
+        correlation=[],
+        nested_correlation=[nested_corr],
+    )
+
+    import logging
+    with caplog.at_level(logging.WARNING, logger="sigma_beam.correlation.fanout"):
+        with TestPipeline() as p:
+            pcoll = p | beam.Create([{"event": "login", "timestamp": 1}])
+            _ = pcoll | CorrelationFanout(rs)
+
+    assert any("nested correlations configured" in m for m in caplog.messages)
+
+
 def test_nested_fanout_does_not_crash():
     """Nested pipeline structure is valid — smoke test."""
     base_rule = CompiledRule(
