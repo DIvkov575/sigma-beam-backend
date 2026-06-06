@@ -1,0 +1,41 @@
+---
+title: failed login (base)
+id: 00000000-0000-0000-0000-000000000001
+status: test
+logsource:
+    product: app
+    service: auth
+detection:
+    sel:
+        event: login
+        status: failed
+    condition: sel
+level: low
+---
+title: brute force (first-level)
+id: 00000000-0000-0000-0000-000000000002
+status: test
+correlation:
+    type: event_count
+    rules:
+        - 00000000-0000-0000-0000-000000000001
+    group-by:
+        - src_ip
+    timespan: 5m
+    condition:
+        gte: 10
+level: high
+---
+title: distributed brute force (nested)
+id: 00000000-0000-0000-0000-000000000003
+status: test
+correlation:
+    type: event_count
+    rules:
+        - 00000000-0000-0000-0000-000000000002
+    group-by:
+        - target_user
+    timespan: 15m
+    condition:
+        gte: 3
+level: critical

@@ -39,6 +39,34 @@ class RuleLoadError(Exception):
     pass
 
 
+def _detect_cycles(correlations: list) -> None:
+    """Raise RuleLoadError if the correlation reference graph has a cycle."""
+    ids = {c.id for c in correlations}
+    adj: dict[str, set[str]] = {c.id: set() for c in correlations}
+    for c in correlations:
+        for ref in c.referenced_rule_ids:
+            if ref in ids:
+                adj[c.id].add(ref)
+
+    WHITE, GRAY, BLACK = 0, 1, 2
+    color = {cid: WHITE for cid in ids}
+
+    def dfs(node: str) -> None:
+        color[node] = GRAY
+        for nb in adj[node]:
+            if color[nb] == GRAY:
+                raise RuleLoadError(
+                    f"cycle detected in correlation rules: {node} → {nb}"
+                )
+            if color[nb] == WHITE:
+                dfs(nb)
+        color[node] = BLACK
+
+    for cid in ids:
+        if color[cid] == WHITE:
+            dfs(cid)
+
+
 def _extract_severity(rule) -> str:
     lvl = getattr(rule, "level", None)
     if lvl is None:
@@ -157,18 +185,30 @@ def load_from_paths(
             if isinstance(rule, SigmaRule):
                 collection.rules[i] = resolve_placeholders(rule, placeholders)
 
+    # --- Two-pass compilation ---
+    all_correlations: list = []
     for rule in collection.rules:
-        # We can't reliably tie a rule back to its source file after the
-        # YAML join, so source_path becomes the directory for diagnostics.
         src = sources[0] if len(sources) == 1 else None
         if isinstance(rule, SigmaCorrelationRule):
             c = _compile_correlation(rule, src)
             _lint_correlation(c)
-            rs.correlation.append(c)
+            all_correlations.append(c)
         elif isinstance(rule, SigmaRule):
             rs.single_event.append(_compile_single(rule, src, logsource_filter))
         else:
             log.warning("skipping unknown rule type %s", type(rule).__name__)
+
+    # Pass 2: detect cycles, then separate first-level from nested.
+    _detect_cycles(all_correlations)
+    corr_ids = {c.id for c in all_correlations}
+
+    import dataclasses
+    for c in all_correlations:
+        if any(r in corr_ids for r in c.referenced_rule_ids):
+            rs.nested_correlation.append(dataclasses.replace(c, is_nested=True))
+        else:
+            rs.correlation.append(c)
+
     return rs
 
 
