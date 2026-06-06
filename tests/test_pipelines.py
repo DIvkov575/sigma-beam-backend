@@ -3,8 +3,16 @@ for a process_creation rule so it matches a real Sysmon event."""
 
 from pathlib import Path
 
+import pytest
+
 from sigma_beam.loader import load_from_dir
 from sigma_beam.processing import default_selector, null_selector
+
+try:
+    import sigma.pipelines.sysmon  # noqa: F401
+    _HAS_SYSMON = True
+except ImportError:
+    _HAS_SYSMON = False
 
 FIX = Path(__file__).parent / "fixtures" / "corpus_smoke"
 
@@ -21,6 +29,7 @@ def test_without_pipeline_matches_any_event_with_image():
     assert rule.predicate(evt)
 
 
+@pytest.mark.skipif(not _HAS_SYSMON, reason="pySigma-pipeline-sysmon not installed")
 def test_with_sysmon_pipeline_requires_eventid_1():
     rs = load_from_dir(FIX, pipeline_selector=default_selector())
     rule = _powershell_rule(rs)
