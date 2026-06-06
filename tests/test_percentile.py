@@ -128,3 +128,23 @@ level: high
     assert c.percentile == 95.0
     assert c.percentile_field == "latency_ms"
     assert c.threshold == 500
+
+
+def test_percentile_handles_none_field_value():
+    base = CompiledRule(id="r1", title="r", severity="low", predicate=_always_true)
+    corr = CompiledCorrelation(
+        id="corr-p95", title="p95", severity="high",
+        kind="percentile", referenced_rule_ids=("r1",),
+        group_by=("service",), window_seconds=60,
+        threshold=500, threshold_op="gte",
+        percentile=95.0, percentile_field="latency_ms",
+    )
+    events = [
+        {"service": "api", "latency_ms": 1000, "timestamp": 1000},
+        {"service": "api", "latency_ms": None, "timestamp": 1001},
+        {"service": "api", "latency_ms": 1000, "timestamp": 1002},
+    ]
+    with TestPipeline() as p:
+        pcoll = p | beam.Create(events)
+        alerts = pcoll | PercentileCorrelation(corr, [base])
+        assert_that(alerts, is_not_empty())

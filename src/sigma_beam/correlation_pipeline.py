@@ -64,8 +64,8 @@ def run(argv=None) -> None:
     else:
         rs = load_from_dir(opts.rules_uri)
     log.info(
-        "ruleset: %d single-event, %d correlation",
-        len(rs.single_event), len(rs.correlation),
+        "ruleset: %d single-event, %d correlation, %d nested",
+        len(rs.single_event), len(rs.correlation), len(rs.nested_correlation),
     )
 
     sub = f"projects/{gc.project}/subscriptions/{opts.input_subscription}"

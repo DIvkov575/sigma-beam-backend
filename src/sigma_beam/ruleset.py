@@ -56,4 +56,4 @@ class Ruleset:
         return {r.id: r for r in self.single_event}
 
     def correlations_by_id(self) -> dict[str, CompiledCorrelation]:
-        return {c.id: c for c in self.correlation}
+        return {c.id: c for c in self.correlation + self.nested_correlation}

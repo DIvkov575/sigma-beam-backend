@@ -26,7 +26,7 @@ def resolve_placeholders(
     """
     if not table:
         _check_no_placeholders(rule, table)
-        return rule
+        return deepcopy(rule)
 
     rule = deepcopy(rule)
     for detection_item in _iter_detection_items(rule):

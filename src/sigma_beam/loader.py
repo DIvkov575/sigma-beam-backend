@@ -51,20 +51,25 @@ def _detect_cycles(correlations: list) -> None:
     WHITE, GRAY, BLACK = 0, 1, 2
     color = {cid: WHITE for cid in ids}
 
-    def dfs(node: str) -> None:
-        color[node] = GRAY
-        for nb in adj[node]:
-            if color[nb] == GRAY:
-                raise RuleLoadError(
-                    f"cycle detected in correlation rules: {node} → {nb}"
-                )
-            if color[nb] == WHITE:
-                dfs(nb)
-        color[node] = BLACK
-
-    for cid in ids:
-        if color[cid] == WHITE:
-            dfs(cid)
+    for start in ids:
+        if color[start] != WHITE:
+            continue
+        stack = [(start, iter(adj[start]))]
+        color[start] = GRAY
+        while stack:
+            node, children = stack[-1]
+            try:
+                nb = next(children)
+                if color[nb] == GRAY:
+                    raise RuleLoadError(
+                        f"cycle detected in correlation rules: {node} → {nb}"
+                    )
+                if color[nb] == WHITE:
+                    color[nb] = GRAY
+                    stack.append((nb, iter(adj[nb])))
+            except StopIteration:
+                color[node] = BLACK
+                stack.pop()
 
 
 def _extract_severity(rule) -> str:

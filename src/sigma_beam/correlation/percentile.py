@@ -41,8 +41,8 @@ class _PercentileCombineFn(beam.CombineFn):
         out: list = []
         for a in accs:
             out.extend(a)
-            if len(out) >= MAX_SAMPLES:
-                return out[:MAX_SAMPLES]
+        if len(out) > MAX_SAMPLES:
+            out = out[:MAX_SAMPLES]
         return out
 
     def extract_output(self, acc: list) -> float:
@@ -98,7 +98,7 @@ class PercentileCorrelation(beam.PTransform):
         return (
             pcoll
             | "Filter" >> beam.Filter(lambda e: passes_any_referenced_rule(e, refs))
-            | "DropMissing" >> beam.Filter(lambda e: get_field(e, pf) is not MISSING)
+            | "DropMissing" >> beam.Filter(lambda e: get_field(e, pf) is not MISSING and get_field(e, pf) is not None)
             | "AttachTs" >> beam.Map(attach_event_time)
             | "Key" >> beam.Map(lambda e: (make_group_key(e, c.group_by), extract_value(e)))
             | "Window" >> beam.WindowInto(
