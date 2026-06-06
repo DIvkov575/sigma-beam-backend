@@ -173,15 +173,7 @@ def _match_value(value: Any, field_val: Any, *, event: dict | None = None) -> bo
         a, b = _stringify(field_val), _stringify(other)
         if a is None or b is None:
             return False
-        # Sigma 2 fieldref default: case-insensitive.
-        a, b = a.lower(), b.lower()
-        if value.starts_with and value.ends_with:
-            return a == b
-        if value.starts_with:
-            return a.startswith(b)
-        if value.ends_with:
-            return a.endswith(b)
-        return a == b
+        return a.lower() == b.lower()
 
     value_type = type(value).__name__
     if "Query" in value_type or "Placeholder" in value_type:

@@ -98,17 +98,17 @@ class TemporalOrderedCorrelation(beam.PTransform):
         c = self._c
         refs = self._refs
 
-        def tag(e):
+        def tag_kvs(e):
             for r in refs:
                 if _safe_match(r.predicate, e):
                     et = parse_event_time(e).micros / 1_000_000
-                    return (make_group_key(e, c.group_by), (et, r.id))
-            return None
+                    yield (make_group_key(e, c.group_by), (et, r.id))
+                    return
 
         return (
             pcoll
             | "AttachTs" >> beam.Map(attach_event_time)
-            | "Tag" >> beam.FlatMap(lambda e: [tag(e)] if tag(e) is not None else [])
+            | "Tag" >> beam.FlatMap(tag_kvs)
             | "Window" >> beam.WindowInto(
                 FixedWindows(c.window_seconds),
                 allowed_lateness=c.allowed_lateness_seconds,

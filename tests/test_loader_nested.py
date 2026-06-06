@@ -4,7 +4,7 @@ from sigma_beam.loader import load_from_dir
 
 
 def test_nested_correlation_from_fixture(tmp_path: Path):
-    fixture = Path(__file__).parent / "fixtures" / "rules" / "nested_correlation.yml"
+    fixture = Path(__file__).parent / "fixtures" / "rules_nested" / "nested_correlation.yml"
     (tmp_path / "rules.yml").write_text(fixture.read_text())
     rs = load_from_dir(tmp_path)
     assert len(rs.single_event) == 1

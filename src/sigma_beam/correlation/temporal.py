@@ -73,15 +73,15 @@ class TemporalCorrelation(beam.PTransform):
         c = self._c
         refs = self._refs
 
-        def to_kv(e):
+        def to_kvs(e):
             matched = frozenset(r.id for r in refs if _safe_match(r.predicate, e))
-            return (make_group_key(e, c.group_by), matched) if matched else None
+            if matched:
+                yield (make_group_key(e, c.group_by), matched)
 
         return (
             pcoll
             | "AttachTs" >> beam.Map(attach_event_time)
-            | "Tag" >> beam.Map(to_kv)
-            | "DropEmpty" >> beam.Filter(lambda x: x is not None)
+            | "TagKV" >> beam.FlatMap(to_kvs)
             | "Window" >> beam.WindowInto(
                 FixedWindows(c.window_seconds),
                 allowed_lateness=c.allowed_lateness_seconds,
