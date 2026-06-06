@@ -6,7 +6,7 @@ Apache Beam runtime for [Sigma](https://sigmahq.io) detection and correlation ru
 
 - **3132 / 3132 SigmaHQ rules compile** (100%).
 - 6264 Hypothesis fuzz invocations across the corpus — zero failures.
-- 95 unit + integration tests passing (+ 1 documented xfail for `|expand`).
+- 95+ unit + integration tests passing.
 
 ## Quick start
 
@@ -50,6 +50,19 @@ src/sigma_beam/
 
 See [`DESIGN.md`](DESIGN.md) for the design rationale.
 
+## Placeholder tables
+
+Rules using `|expand` require a placeholder table at load time:
+
+```python
+from sigma_beam.loader import load_from_dir
+
+rs = load_from_dir("rules/", placeholders={
+    "admin_users": ["alice", "bob", "root"],
+    "critical_hosts": ["dc01", "dc02", "ca01"],
+})
+```
+
 ## Coverage harness
 
 ```bash
@@ -72,5 +85,7 @@ Prints compile rate, top unsupported constructs, and runtime errors against a sy
 | Correlation: `event_count`, `value_count`, `temporal`, `temporal_ordered` | ✅ |
 | Processing pipelines (sysmon, windows) per logsource | ✅ (opt-in) |
 | Logsource filtering | ✅ (opt-in, pluggable policy) |
-| `|expand` placeholder substitution | ❌ (documented gap) |
-| Correlation aliases / percentile / nested correlation | ❌ |
+| `|expand` placeholder substitution | ✅ (requires placeholder table) |
+| Correlation: nested (correlation-of-correlations) | ✅ (one level) |
+| Correlation: percentile aggregation | ✅ (beaver extension) |
+| Correlation aliases | ❌ |
