@@ -183,7 +183,13 @@ def _match_value(value: Any, field_val: Any, *, event: dict | None = None) -> bo
             return a.endswith(b)
         return a == b
 
-    raise UnsupportedCondition(f"unsupported Sigma value type: {type(value).__name__}")
+    value_type = type(value).__name__
+    if "Query" in value_type or "Placeholder" in value_type:
+        raise UnsupportedCondition(
+            f"unresolved placeholder/query expression ({value_type}); "
+            "supply a placeholders table to load_from_dir/load_from_gcs"
+        )
+    raise UnsupportedCondition(f"unsupported Sigma value type: {value_type}")
 
 
 # --- keyword (field-less) search ---------------------------------------

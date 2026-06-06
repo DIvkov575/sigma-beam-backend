@@ -51,3 +51,30 @@ def test_expand_with_empty_table_and_no_placeholders():
     result = resolve_placeholders(r, {})
     p = compile_rule(result)
     assert p({"User": "alice"})
+
+
+from pathlib import Path
+from sigma_beam.loader import load_from_dir
+
+
+def test_loader_resolves_placeholders(tmp_path: Path):
+    rule_file = tmp_path / "admin_rule.yml"
+    rule_file.write_text("""
+title: admin login
+id: 00000000-0000-0000-0000-000000000002
+logsource:
+    product: app
+    service: auth
+detection:
+    sel:
+        User|expand: '%admin_users%'
+    condition: sel
+level: high
+""")
+    table = {"admin_users": ["alice", "bob"]}
+    rs = load_from_dir(tmp_path, placeholders=table)
+    assert len(rs.single_event) == 1
+    p = rs.single_event[0].predicate
+    assert p({"User": "alice"})
+    assert p({"User": "bob"})
+    assert not p({"User": "mallory"})

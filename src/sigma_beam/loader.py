@@ -12,6 +12,7 @@ from sigma.correlations import SigmaCorrelationRule
 from sigma.rule import SigmaRule
 
 from .conditions import compile_rule
+from .placeholders import resolve_placeholders
 from .logsource import LogsourceFilter, null_filter
 from .processing import PipelineSelector, apply_pipelines, null_selector
 from .ruleset import CompiledCorrelation, CompiledRule, Ruleset
@@ -129,6 +130,7 @@ def load_from_paths(
     *,
     logsource_filter: LogsourceFilter = null_filter,
     pipeline_selector: PipelineSelector = null_selector,
+    placeholders: dict[str, list[str]] | None = None,
 ) -> Ruleset:
     rs = Ruleset()
     # Parse all files into one collection so cross-file correlation refs resolve.
@@ -150,6 +152,11 @@ def load_from_paths(
         if isinstance(rule, SigmaRule):
             apply_pipelines(rule, pipeline_selector)
 
+    if placeholders:
+        for i, rule in enumerate(collection.rules):
+            if isinstance(rule, SigmaRule):
+                collection.rules[i] = resolve_placeholders(rule, placeholders)
+
     for rule in collection.rules:
         # We can't reliably tie a rule back to its source file after the
         # YAML join, so source_path becomes the directory for diagnostics.
@@ -170,6 +177,7 @@ def load_from_dir(
     *,
     logsource_filter: LogsourceFilter = null_filter,
     pipeline_selector: PipelineSelector = null_selector,
+    placeholders: dict[str, list[str]] | None = None,
 ) -> Ruleset:
     root = Path(path)
     if not root.is_dir():
@@ -178,10 +186,11 @@ def load_from_dir(
         _iter_yaml_files(root),
         logsource_filter=logsource_filter,
         pipeline_selector=pipeline_selector,
+        placeholders=placeholders,
     )
 
 
-def load_from_gcs(uri: str) -> Ruleset:
+def load_from_gcs(uri: str, *, placeholders: dict[str, list[str]] | None = None) -> Ruleset:
     """Download every `*.y[a]ml` under a `gs://bucket/prefix/` URI and load.
 
     Imported lazily so the loader stays usable in unit tests without GCP deps.
@@ -203,4 +212,4 @@ def load_from_gcs(uri: str) -> Ruleset:
                 continue
             local = local_root / Path(blob.name).name
             blob.download_to_filename(str(local))
-        return load_from_dir(local_root)
+        return load_from_dir(local_root, placeholders=placeholders)

@@ -210,20 +210,26 @@ def test_wide_modifier():
     assert not p({"Data": "secret"})  # plain ASCII shouldn't match wide-encoded
 
 
-@pytest.mark.xfail(
-    reason="SigmaQueryExpression / placeholders require backend-specific expansion",
-    strict=False,
-)
 def test_expand_placeholder():
-    # |expand needs a placeholder table; pySigma doesn't fill it in by default,
-    # so the value stays as a placeholder string and our matcher can't resolve
-    # it. Documenting as an explicit gap.
-    r = _rule("""
-        title: t
-        logsource: {product: x}
-        detection:
-            sel: {User|expand: '%admin_users%'}
-            condition: sel
-    """)
-    p = compile_rule(r)
-    assert p({"User": "alice"})  # would require placeholder substitution
+    """With a placeholder table supplied via the loader, |expand rules work."""
+    from pathlib import Path
+    from sigma_beam.loader import load_from_dir
+    import tempfile
+
+    rule_yaml = """\
+title: admin detection
+id: 00000000-0000-0000-0000-000000000001
+logsource: {product: x}
+detection:
+    sel:
+        User|expand: '%admin_users%'
+    condition: sel
+level: medium
+"""
+    with tempfile.TemporaryDirectory() as td:
+        (Path(td) / "rule.yml").write_text(rule_yaml)
+        rs = load_from_dir(td, placeholders={"admin_users": ["alice", "bob"]})
+    p = rs.single_event[0].predicate
+    assert p({"User": "alice"})
+    assert p({"User": "bob"})
+    assert not p({"User": "mallory"})
