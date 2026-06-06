@@ -89,3 +89,20 @@ def test_nested_fanout_does_not_crash():
         pcoll = p | beam.Create(events)
         _ = pcoll | CorrelationFanout(rs)
     # No crash = success
+
+
+def test_alert_to_event_supports_group_by_on_correlation_key():
+    """Nested rules should use group_by: [correlation_key] or [rule_id]."""
+    a = Alert(
+        rule_id="corr-x",
+        rule_title="X",
+        severity="high",
+        fired_at="2026-01-01T00:00:00+00:00",
+        window_start="2026-01-01T00:00:00+00:00",
+        window_end="2026-01-01T00:05:00+00:00",
+        correlation_key="alice|10.0.0.1",
+    )
+    event = alert_to_event(a)
+    from sigma_beam.correlation._common import make_group_key
+    assert make_group_key(event, ("correlation_key",)) == "alice|10.0.0.1"
+    assert make_group_key(event, ("rule_id",)) == "corr-x"
