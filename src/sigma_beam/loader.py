@@ -129,6 +129,13 @@ def _compile_correlation(
     kind = str(rule.type).split(".")[-1].lower() if hasattr(rule.type, "name") else str(rule.type).lower()
     # pySigma SigmaCorrelationType enum: event_count, value_count, temporal, temporal_ordered.
 
+    # Percentile fields from beaver annotations
+    percentile = _annotation(rule, "percentile", None)
+    percentile_field = _annotation(rule, "percentile_field", None)
+    if percentile is not None:
+        percentile = float(percentile)
+        kind = "percentile"  # Override kind for beaver-extension rules
+
     return CompiledCorrelation(
         id=str(rule.id),
         title=rule.title or "",
@@ -143,6 +150,8 @@ def _compile_correlation(
         ordered_sequence=refs if kind == "temporal_ordered" else (),
         allowed_lateness_seconds=int(_annotation(rule, "allowed_lateness_seconds", 300)),
         allow_high_cardinality=bool(_annotation(rule, "allow_high_cardinality", False)),
+        percentile=percentile,
+        percentile_field=percentile_field,
         source_path=source_path,
     )
 

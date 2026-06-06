@@ -13,6 +13,7 @@ from .event_count import EventCountCorrelation
 from .nested import AlertsToEvents
 from .temporal import TemporalCorrelation
 from .temporal_ordered import TemporalOrderedCorrelation
+from .percentile import PercentileCorrelation
 from .value_count import ValueCountCorrelation
 
 _KIND_TO_TRANSFORM = {
@@ -20,6 +21,7 @@ _KIND_TO_TRANSFORM = {
     "value_count": ValueCountCorrelation,
     "temporal": TemporalCorrelation,
     "temporal_ordered": TemporalOrderedCorrelation,
+    "percentile": PercentileCorrelation,
 }
 
 

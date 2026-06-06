@@ -88,3 +88,43 @@ def test_percentile_missing_field_raises():
     )
     with pytest.raises(ValueError, match="missing percentile_field"):
         PercentileCorrelation(corr, [base])
+
+
+from pathlib import Path
+from sigma_beam.loader import load_from_dir
+
+
+def test_loader_parses_percentile_rule(tmp_path: Path):
+    (tmp_path / "rules.yml").write_text("""
+---
+title: any req
+id: 00000000-0000-0000-0000-000000000001
+status: test
+logsource: {product: app, service: http}
+detection:
+    sel: {event: request}
+    condition: sel
+level: low
+---
+title: p95 spike
+id: 00000000-0000-0000-0000-000000000002
+status: test
+correlation:
+    type: event_count
+    rules: ['00000000-0000-0000-0000-000000000001']
+    group-by: [service]
+    timespan: 5m
+    condition:
+        gte: 500
+beaver:
+    percentile: 95.0
+    percentile_field: latency_ms
+level: high
+""")
+    rs = load_from_dir(tmp_path)
+    assert len(rs.correlation) == 1
+    c = rs.correlation[0]
+    assert c.kind == "percentile"
+    assert c.percentile == 95.0
+    assert c.percentile_field == "latency_ms"
+    assert c.threshold == 500
