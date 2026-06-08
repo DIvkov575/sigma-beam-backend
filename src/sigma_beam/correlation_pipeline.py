@@ -97,7 +97,7 @@ def run(argv=None) -> None:
         alerts = (
             [se_g, corr_g]
             | "FlattenAlerts" >> beam.Flatten()
-            | "AlertToBytes" >> beam.Map(lambda a: a.to_bytes())
+            | "AlertToBytes" >> beam.Map(lambda a: a.to_bq_bytes())
         )
         alerts | "PublishAlerts" >> beam.io.WriteToPubSub(topic=alerts_topic)
 

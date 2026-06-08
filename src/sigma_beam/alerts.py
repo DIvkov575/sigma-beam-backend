@@ -29,3 +29,13 @@ class Alert:
 
     def to_bytes(self) -> bytes:
         return self.to_json().encode("utf-8")
+
+    def to_bq_bytes(self) -> bytes:
+        """Serialize for Pub/Sub→BigQuery subscription (use_table_schema).
+
+        BQ JSON columns must receive a JSON *string*, not a native array.
+        """
+        d = dataclasses.asdict(self)
+        d["matched_events"] = json.dumps(d["matched_events"], default=str)
+        d["tags"] = json.dumps(d.get("tags", []), default=str)
+        return json.dumps(d, default=str, sort_keys=True).encode("utf-8")
