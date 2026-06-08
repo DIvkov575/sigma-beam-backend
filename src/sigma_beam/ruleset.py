@@ -17,6 +17,8 @@ class CompiledRule:
     severity: str
     predicate: Predicate
     source_path: str | None = None
+    tags: tuple[str, ...] = ()
+    project_fields: tuple[str, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -30,7 +32,8 @@ class CompiledCorrelation:
     window_seconds: int
     # event_count / value_count only:
     threshold: int | None = None
-    threshold_op: str = "gte"   # gte | gt | lt | lte | eq
+    threshold_op: str = "gte"   # gte | gt | lt | lte | eq | neq
+    threshold_range: tuple[int, int] | None = None  # inclusive [lo, hi]; takes precedence
     # value_count only:
     value_field: str | None = None
     # temporal_ordered only (sequence of rule ids):
@@ -38,7 +41,9 @@ class CompiledCorrelation:
     # Annotations:
     allowed_lateness_seconds: int = 300
     allow_high_cardinality: bool = False
+    suppress_window_seconds: int = 0   # 0 = no suppression; one alert per fire
     source_path: str | None = None
+    tags: tuple[str, ...] = ()
 
 
 @dataclass

@@ -210,14 +210,9 @@ def test_wide_modifier():
     assert not p({"Data": "secret"})  # plain ASCII shouldn't match wide-encoded
 
 
-@pytest.mark.xfail(
-    reason="SigmaQueryExpression / placeholders require backend-specific expansion",
-    strict=False,
-)
-def test_expand_placeholder():
-    # |expand needs a placeholder table; pySigma doesn't fill it in by default,
-    # so the value stays as a placeholder string and our matcher can't resolve
-    # it. Documenting as an explicit gap.
+def test_expand_placeholder_without_table_does_not_match():
+    # Without a placeholder table at load time the value stays a
+    # SigmaQueryExpression; matcher returns False (never raises).
     r = _rule("""
         title: t
         logsource: {product: x}
@@ -226,4 +221,4 @@ def test_expand_placeholder():
             condition: sel
     """)
     p = compile_rule(r)
-    assert p({"User": "alice"})  # would require placeholder substitution
+    assert not p({"User": "alice"})

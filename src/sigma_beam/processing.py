@@ -42,19 +42,41 @@ def _try_import(modpath: str, attr: str):
         return None
 
 
+_SYSMON_CATEGORIES = {
+    "process_creation", "image_load", "network_connection",
+    "registry_event", "file_event", "dns_query", "pipe_created",
+    "wmi_event",
+}
+
+
 def default_selector() -> PipelineSelector:
     """Pipelines wired up by default when their plugin is installed."""
     sysmon = _try_import("sigma.pipelines.sysmon", "sysmon_pipeline")
+    windows_audit = _try_import("sigma.pipelines.windows", "windows_audit_pipeline")
+    aws = _try_import("sigma.pipelines.aws", "aws_pipeline")
+    okta = _try_import("sigma.pipelines.okta", "okta_pipeline")
+    crowdstrike = _try_import("sigma.pipelines.crowdstrike",
+                              "crowdstrike_falcon_pipeline")
 
     def selector(ls: SigmaLogSource) -> Iterable[ProcessingPipeline]:
         out = []
         product = (ls.product or "").lower()
         category = (ls.category or "").lower()
-        if product == "windows" and category in {"process_creation", "image_load",
-                                                  "network_connection", "registry_event",
-                                                  "file_event", "dns_query"}:
-            if sysmon is not None:
+        service = (ls.service or "").lower()
+
+        if product == "windows":
+            if category in _SYSMON_CATEGORIES and sysmon is not None:
                 out.append(sysmon())
+            elif service in {"security", "system", "application"} and windows_audit is not None:
+                out.append(windows_audit())
+
+        if product == "aws" and aws is not None:
+            out.append(aws())
+        if product == "okta" and okta is not None:
+            out.append(okta())
+        if product in {"crowdstrike", "crowdstrike_falcon"} and crowdstrike is not None:
+            out.append(crowdstrike())
+
         return out
 
     return selector

@@ -7,6 +7,7 @@ import apache_beam as beam
 
 from ..ruleset import Ruleset
 from .event_count import EventCountCorrelation
+from .suppression import Suppress
 from .temporal import TemporalCorrelation
 from .temporal_ordered import TemporalOrderedCorrelation
 from .value_count import ValueCountCorrelation
@@ -45,8 +46,11 @@ class CorrelationFanout(beam.PTransform):
             refs = [by_id[r] for r in c.referenced_rule_ids if r in by_id]
             if not refs:
                 continue  # nothing references it; skip silently
-            branches.append(
-                pcoll | f"Correlation[{c.id}]" >> cls(c, refs)
-            )
+            branch = pcoll | f"Correlation[{c.id}]" >> cls(c, refs)
+            if c.suppress_window_seconds > 0:
+                branch = branch | f"Suppress[{c.id}]" >> Suppress(
+                    c.suppress_window_seconds
+                )
+            branches.append(branch)
 
         return branches | "FlattenAlerts" >> beam.Flatten()

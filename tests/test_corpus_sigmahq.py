@@ -38,3 +38,19 @@ def test_sigmahq_corpus_coverage():
         assert report.ok_rate >= THRESHOLD, (
             f"compile_ok rate {report.ok_rate:.2%} < threshold {THRESHOLD:.0%}"
         )
+
+
+@pytest.mark.skipif(
+    not SIGMA_HQ_PATH,
+    reason="set SIGMA_HQ_PATH=<path/to/SigmaHQ/sigma/rules> to enable",
+)
+def test_sigmahq_corpus_runtime_probe():
+    """Evaluate every compiled rule against the synthetic event panel."""
+    root = Path(SIGMA_HQ_PATH)
+    assert root.is_dir(), f"SIGMA_HQ_PATH not a directory: {root}"
+    report = analyze_corpus(root, probe_runtime=True)
+    print("\n" + report.format())
+    rte = sum(o.runtime_errors for o in report.outcomes)
+    print(f"\nTotal runtime errors across panel: {rte}")
+    if ENFORCE:
+        assert rte == 0, f"{rte} predicate evaluations raised on synthetic events"

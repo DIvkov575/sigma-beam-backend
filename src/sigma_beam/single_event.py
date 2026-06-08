@@ -15,6 +15,7 @@ from apache_beam import pvalue
 from . import metrics as m
 from .alerts import Alert
 from .dlq import format_dlq
+from .field_access import MISSING, get_field
 from .ruleset import CompiledRule
 
 MAIN = "alerts"
@@ -50,11 +51,19 @@ class _DetectDoFn(beam.DoFn):
                 continue
             if hit:
                 self._match_counters[r.id].inc()
+                if r.project_fields:
+                    matched = {}
+                    for f in r.project_fields:
+                        v = get_field(event, f)
+                        matched[f] = None if v is MISSING else v
+                else:
+                    matched = event
                 yield Alert(
                     rule_id=r.id,
                     rule_title=r.title,
                     severity=r.severity,
-                    matched_events=[event],
+                    matched_events=[matched],
+                    tags=list(r.tags),
                 )
 
 

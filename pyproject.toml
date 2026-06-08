@@ -29,6 +29,7 @@ test = [
 
 [project.scripts]
 sigma-beam-corpus = "sigma_beam.cli_corpus:main"
+sigma-beam-test-rule = "sigma_beam.cli_test_rule:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

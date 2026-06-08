@@ -64,6 +64,23 @@ def _lint_correlation(c: CompiledCorrelation) -> None:
         )
 
 
+def _tag_strings(rule) -> tuple[str, ...]:
+    out = []
+    for t in (getattr(rule, "tags", None) or []):
+        ns = getattr(t, "namespace", None)
+        nm = getattr(t, "name", None)
+        if ns and nm:
+            out.append(f"{ns}.{nm}")
+        else:
+            out.append(str(t))
+    return tuple(out)
+
+
+def _project_fields(rule) -> tuple[str, ...] | None:
+    fields = getattr(rule, "fields", None)
+    return tuple(fields) if fields else None
+
+
 def _compile_single(
     rule: SigmaRule,
     source_path: str | None,
@@ -82,6 +99,8 @@ def _compile_single(
         severity=_extract_severity(rule),
         predicate=predicate,
         source_path=source_path,
+        tags=_tag_strings(rule),
+        project_fields=_project_fields(rule),
     )
 
 
@@ -100,6 +119,12 @@ def _compile_correlation(
     kind = str(rule.type).split(".")[-1].lower() if hasattr(rule.type, "name") else str(rule.type).lower()
     # pySigma SigmaCorrelationType enum: event_count, value_count, temporal, temporal_ordered.
 
+    # Beaver extension: `beaver.threshold_range: [lo, hi]` (not in upstream Sigma 2).
+    raw_range = _annotation(rule, "threshold_range", None)
+    threshold_range: tuple[int, int] | None = None
+    if isinstance(raw_range, (list, tuple)) and len(raw_range) == 2:
+        threshold_range = (int(raw_range[0]), int(raw_range[1]))
+
     return CompiledCorrelation(
         id=str(rule.id),
         title=rule.title or "",
@@ -110,11 +135,14 @@ def _compile_correlation(
         window_seconds=int(rule.timespan.seconds),
         threshold=int(threshold) if threshold is not None else None,
         threshold_op=op,
+        threshold_range=threshold_range,
         value_field=value_field,
         ordered_sequence=refs if kind == "temporal_ordered" else (),
         allowed_lateness_seconds=int(_annotation(rule, "allowed_lateness_seconds", 300)),
         allow_high_cardinality=bool(_annotation(rule, "allow_high_cardinality", False)),
+        suppress_window_seconds=int(_annotation(rule, "suppress_window_seconds", 0)),
         source_path=source_path,
+        tags=_tag_strings(rule),
     )
 
 
@@ -124,11 +152,34 @@ def _iter_yaml_files(root: Path) -> Iterable[Path]:
             yield p
 
 
+def _apply_placeholders(collection, placeholders: dict[str, list[str]]) -> None:
+    """Substitute %name% placeholders in detection values with supplied lists."""
+    from sigma.processing.pipeline import ProcessingItem, ProcessingPipeline
+    from sigma.processing.transformations.placeholder import (
+        ValueListPlaceholderTransformation,
+    )
+    pipeline = ProcessingPipeline(
+        items=[ProcessingItem(transformation=ValueListPlaceholderTransformation())],
+        vars=placeholders,
+    )
+    for rule in collection.rules:
+        if isinstance(rule, SigmaRule):
+            try:
+                pipeline.apply(rule)
+            except Exception as exc:
+                # Missing placeholder values are common in dev — fail soft
+                # so the rule simply never matches rather than crashing the
+                # whole ruleset load.
+                log.warning("placeholder expansion failed for %s: %s",
+                            getattr(rule, "id", "?"), exc)
+
+
 def load_from_paths(
     paths: Iterable[Path],
     *,
     logsource_filter: LogsourceFilter = null_filter,
     pipeline_selector: PipelineSelector = null_selector,
+    placeholders: dict[str, list[str]] | None = None,
 ) -> Ruleset:
     rs = Ruleset()
     # Parse all files into one collection so cross-file correlation refs resolve.
@@ -143,6 +194,9 @@ def load_from_paths(
 
     collection = SigmaCollection.from_yaml("\n---\n".join(docs))
     collection.resolve_rule_references()
+
+    if placeholders:
+        _apply_placeholders(collection, placeholders)
 
     # Apply processing pipelines before compilation so EventID injections,
     # field renames, and category expansions are baked into the predicate.
@@ -170,6 +224,7 @@ def load_from_dir(
     *,
     logsource_filter: LogsourceFilter = null_filter,
     pipeline_selector: PipelineSelector = null_selector,
+    placeholders: dict[str, list[str]] | None = None,
 ) -> Ruleset:
     root = Path(path)
     if not root.is_dir():
@@ -178,6 +233,7 @@ def load_from_dir(
         _iter_yaml_files(root),
         logsource_filter=logsource_filter,
         pipeline_selector=pipeline_selector,
+        placeholders=placeholders,
     )
 
 

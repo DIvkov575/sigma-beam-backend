@@ -59,14 +59,19 @@ def referenced_rules(c: CompiledCorrelation, rs: Ruleset) -> list[CompiledRule]:
     return [by_id[rid] for rid in c.referenced_rule_ids if rid in by_id]
 
 
-def cmp_threshold(count: int, op: str, threshold: int) -> bool:
+def cmp_threshold(count: int, c: CompiledCorrelation) -> bool:
+    if c.threshold_range is not None:
+        lo, hi = c.threshold_range
+        return lo <= count <= hi
+    t = c.threshold or 0
     return {
-        "gte": count >= threshold,
-        "gt":  count >  threshold,
-        "lte": count <= threshold,
-        "lt":  count <  threshold,
-        "eq":  count == threshold,
-    }.get(op, count >= threshold)
+        "gte": count >= t,
+        "gt":  count >  t,
+        "lte": count <= t,
+        "lt":  count <  t,
+        "eq":  count == t,
+        "neq": count != t,
+    }.get(c.threshold_op, count >= t)
 
 
 def attach_event_time(event: dict, field: str = TIMESTAMP_FIELD_DEFAULT) -> TimestampedValue:

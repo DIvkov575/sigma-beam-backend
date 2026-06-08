@@ -81,6 +81,7 @@ class _CheckSequence(beam.DoFn):
             window_start=window.start.to_utc_datetime().isoformat(),
             window_end=window.end.to_utc_datetime().isoformat(),
             correlation_key=key,
+            tags=list(c.tags),
         )
 
 

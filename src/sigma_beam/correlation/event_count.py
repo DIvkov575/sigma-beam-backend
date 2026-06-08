@@ -24,7 +24,7 @@ class _ToWindowedAlert(beam.DoFn):
     def process(self, element, window=beam.DoFn.WindowParam):
         key, count = element
         c = self._c
-        if not cmp_threshold(count, c.threshold_op, c.threshold or 0):
+        if not cmp_threshold(count, c):
             return
         yield Alert(
             rule_id=c.id,
@@ -33,7 +33,8 @@ class _ToWindowedAlert(beam.DoFn):
             window_start=window.start.to_utc_datetime().isoformat(),
             window_end=window.end.to_utc_datetime().isoformat(),
             correlation_key=key,
-            matched_events=[],  # individual events not retained for count rules
+            matched_events=[],
+            tags=list(c.tags),
         )
 
 
